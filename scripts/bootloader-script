@@ -1,0 +1,234 @@
+# -*- shell-script -*- vim:ft=sh:
+#---------------------------------------------------------------------
+# Description: Update kernel/core snap.
+# Entry point: mountroot().
+#---------------------------------------------------------------------
+
+pre_mountroot()
+{
+	local script_dir="/scripts/local-top"
+	log_begin_msg "Running $script_dir"
+	run_scripts "$script_dir"
+	log_end_msg
+}
+
+# Determine full path to disk partition given a filesystem label.
+get_partition_from_label()
+{
+	local label="$1"
+
+	[ -n "$label" ] || panic "need FS label"
+
+	# Make sure the device has been created by udev before looking for it
+	# Don't need to panic, since the output will be validated outside this function
+	wait-for-root "LABEL=$label" "${ROOTDELAY:-180}" >/dev/null || true
+
+	local part=$(find /dev -name "$label"|tail -1)
+	[ -z "$part" ] && return
+	local path=$(readlink -f "$part")
+	[ -n "$path" ] && echo "$path"
+}
+
+# setup $rootmnt based on os/kernel snaps
+do_root_mounting()
+{
+	root="LABEL=$writable_label"
+
+	# Make sure the device has been created by udev before we try to mount
+	wait-for-root "$root" "${ROOTDELAY:-180}" || panic "unable to find root partition '$root'"
+
+	[ -n "$root" ] || panic "no root partition specified"
+
+	if echo "$root" | grep -q ^/; then
+		path="$root"
+	else
+		# convert UUID/LABEL to a device name
+		path=$(findfs "$root" 2>/dev/null || :)
+	fi
+
+	[ -e "$path" ] || panic "root device $path does not exist"
+
+	# try loading squashfs, but don't fail if its e.g. in the kernel
+	# already
+	modprobe squashfs || true
+
+	if ! grep -q squashfs /proc/filesystems; then
+		 panic "no squashfs support found in your system, aborting"
+	fi
+
+	# mount writable rw
+	path=$(get_partition_from_label "$writable_label")
+	mount "$path" "$writable_mnt"
+}
+
+# Save "bootloader" environment in u-boot env
+saveenv()
+{
+	fw_setenv snap_mode $snap_mode
+	fw_setenv snap_try_core $snap_try_core
+	fw_setenv snap_try_kernel $snap_try_kernel
+	fw_setenv snap_core $snap_core
+	fw_setenv snap_kernel $snap_kernel
+	sync
+}
+
+# Load needed bootloader env to shell
+loadenv()
+{
+	snap_mode=$(fw_printenv snap_mode) || snap_mode=""
+	snap_try_core=$(fw_printenv snap_try_core) || snap_try_core=""
+	snap_try_kernel=$(fw_printenv snap_try_kernel) || snap_try_kernel=""
+	snap_core=$(fw_printenv snap_core) || snap_core=""
+	snap_kernel=$(fw_printenv snap_kernel) || snap_kernel=""
+}
+
+do_system_boot_mounting()
+{
+	# Request bootloader partition be mounted
+	boot_partition=$(findfs LABEL="system-boot" 2>/dev/null || :)
+
+	if [ -n "$boot_partition" ]; then
+		# u-boot env file defined in /etc/fw_env.config
+		tmpboot_mnt="/tmpmnt_system-boot"
+		mkdir -p $tmpboot_mnt
+		mount "$boot_partition" "$tmpboot_mnt"
+	else
+		panic "No system-boot partition found!"
+	fi
+}
+
+# Flash kernel snap with name $2 to partition $1
+flash_kernel()
+{
+	local partition="$1"
+	local kernel_snap="$2"
+	local kernel_mnt="/tmpmnt_kernel"
+	local kernel_tmp="/tmp_kerneltmp"
+	mkdir -p "$kernel_mnt"
+	mount "${writable_mnt}/system-data/var/lib/snapd/snaps/${kernel_snap}" \
+	      "$kernel_mnt"
+
+    # extract old image to get boot cfg
+	mkdir -p "$kernel_tmp"
+	abootimg -x "$partition" "${kernel_tmp}/bootimg.cfg" "${kernel_tmp}/kernel.img" \
+	                   "${kernel_tmp}/initrd.img" "${kernel_tmp}/stage2.img" "${kernel_tmp}/dt.img"
+	sed -i '/bootsize/d' "${kernel_tmp}/bootimg.cfg"
+	# replace with new kernel and initrd
+	cp "${kernel_mnt}/kernel.img" "${kernel_tmp}/kernel.img"
+	cp "${kernel_mnt}/initrd.img" "${kernel_tmp}/initrd.img"
+	abootimg --create "${kernel_tmp}/boot.img" -f "${kernel_tmp}/bootimg.cfg" \
+	                   -k "${kernel_tmp}/kernel.img" -r "${kernel_tmp}/initrd.img" --dt "${kernel_tmp}/dt.img"
+
+	cat "${kernel_tmp}/boot.img" > "$partition"
+	sync
+}
+
+# Modify kernel command line of partition $1 with core $2 and kernel $3
+modify_kernel_cmdline()
+{
+	local cmdline
+	local partition="$1"
+	local core="$2"
+	local kernel="$3"
+	cmdline=$(abootimg -i "$partition" | grep cmdline)
+	cmdline="${cmdline#\* cmdline = }"
+	cmdline=$(echo "$cmdline" \
+			     | sed "s/snap_core=[[:alnum:]_.-]*/snap_core=$core/" \
+			     | sed "s/snap_kernel=[[:alnum:]_.-]*/snap_kernel=$kernel/")
+	abootimg -u "$partition" -c "cmdline=$cmdline"
+
+	sync
+}
+
+# tell u-boot to boot recovery, flag will be cleared by u-boot
+reboot_recovery()
+{
+	fw_setenv reboot_mode recovery
+	reboot
+}
+
+debug_shell()
+{
+    PS1='debugshell> ' /bin/sh -i </dev/console >/dev/console 2>&1 # XXX: debug
+}
+
+#---------------------------------------------------------------------
+# XXX: Entry point - called by the initramfs "/init" script.
+#---------------------------------------------------------------------
+mountroot()
+{
+	pre_mountroot
+
+	log_begin_msg "Running /scripts/local-premount"
+	run_scripts /scripts/local-premount
+	log_end_msg
+
+	# always ensure writable is in a good state
+	writable_label="writable"
+	writable_mnt="/tmpmnt_${writable_label}"
+	mkdir -p "$writable_mnt"
+
+	# mount the root fs
+	do_root_mounting
+
+	# load env from u-boot
+	do_system_boot_mounting
+	loadenv
+
+	debug_shell
+
+	# Find recovery partition
+	recovery_partition=$(findfs PARTLABEL="recovery" 2>/dev/null || :)
+	[ -e "$recovery_partition" ] || panic "recovery partition does not exist"
+
+	# Make sure update has not already failed
+	if [ "$snap_mode" = "trying" ]; then
+		snap_mode=""
+		saveenv
+		log_failure_msg "mode is still \"trying\"! Reverting..."
+
+		if [ "$snap_try_kernel" != "" ]; then
+			log_begin_msg "Re-flashing old kernel"
+			flash_kernel "$recovery_partition" "$snap_kernel"
+			log_end_msg
+		fi
+
+		# Modify kernel command line
+		modify_kernel_cmdline "$recovery_partition" "$snap_core" "$snap_kernel"
+		log_failure_msg "- booting"
+		reboot_recovery
+	fi
+
+	# Check if we are trying a snap, reboot otherwise
+	if [ "$snap_mode" != "try" ]; then
+		# Normally we shouldn't reach here, a non "try" snap_mode will boot to recovery by u-boot
+		log_success_msg "no core/kernel updates, booting"
+		reboot_recovery
+	fi
+
+	snap_mode="trying"
+	saveenv
+
+	# Force panic if we fail while trying to update
+	set -e
+
+	if [ "$snap_try_core" != "" ]; then
+		snap_core="$snap_try_core"
+	fi
+
+	if [ "$snap_try_kernel" != "" ]; then
+		snap_kernel="$snap_try_kernel"
+
+		# Flash newer kernel
+		log_begin_msg "flashing new kernel"
+		flash_kernel "$recovery_partition" "$snap_kernel"
+		log_end_msg
+	fi
+
+	# Modify command line
+	modify_kernel_cmdline "$recovery_partition" "$snap_core" "$snap_kernel"
+
+	log_success_msg "update finished, booting"
+
+	reboot_recovery
+}

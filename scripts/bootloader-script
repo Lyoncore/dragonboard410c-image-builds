@@ -88,7 +88,7 @@ do_system_boot_mounting()
 	boot_partition=$(findfs LABEL="system-boot" 2>/dev/null || :)
 
 	if [ -n "$boot_partition" ]; then
-		# u-boot env file defined in /etc/fw_env.config
+		# u-boot env path defined in /etc/fw_env.config
 		tmpboot_mnt="/tmpmnt_system-boot"
 		mkdir -p $tmpboot_mnt
 		mount "$boot_partition" "$tmpboot_mnt"
@@ -174,8 +174,6 @@ mountroot()
 	# load env from u-boot
 	do_system_boot_mounting
 	loadenv
-
-	debug_shell
 
 	# Find recovery partition
 	recovery_partition=$(findfs PARTLABEL="recovery" 2>/dev/null || :)

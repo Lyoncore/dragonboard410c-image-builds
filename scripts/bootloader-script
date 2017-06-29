@@ -75,11 +75,11 @@ saveenv()
 # Load needed bootloader env to shell
 loadenv()
 {
-	snap_mode=$(fw_printenv snap_mode) || snap_mode=""
-	snap_try_core=$(fw_printenv snap_try_core) || snap_try_core=""
-	snap_try_kernel=$(fw_printenv snap_try_kernel) || snap_try_kernel=""
-	snap_core=$(fw_printenv snap_core) || snap_core=""
-	snap_kernel=$(fw_printenv snap_kernel) || snap_kernel=""
+	snap_mode=$(fw_printenv -n snap_mode) || snap_mode=""
+	snap_try_core=$(fw_printenv -n snap_try_core) || snap_try_core=""
+	snap_try_kernel=$(fw_printenv -n snap_try_kernel) || snap_try_kernel=""
+	snap_core=$(fw_printenv -n snap_core) || snap_core=""
+	snap_kernel=$(fw_printenv -n snap_kernel) || snap_kernel=""
 }
 
 do_system_boot_mounting()
@@ -108,7 +108,7 @@ flash_kernel()
 	mount "${writable_mnt}/system-data/var/lib/snapd/snaps/${kernel_snap}" \
 	      "$kernel_mnt"
 
-    # extract old image to get boot cfg
+	# extract old image to get boot cfg
 	mkdir -p "$kernel_tmp"
 	abootimg -x "$partition" "${kernel_tmp}/bootimg.cfg" "${kernel_tmp}/kernel.img" \
 	                   "${kernel_tmp}/initrd.img" "${kernel_tmp}/stage2.img" "${kernel_tmp}/dt.img"

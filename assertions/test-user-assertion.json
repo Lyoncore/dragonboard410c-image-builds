@@ -1,0 +1,13 @@
+{
+"type": "system-user",
+"authority-id": "4dOHyqyMqyQbjNuo3IGvl7ENg6wWEgZm",
+"brand-id": "4dOHyqyMqyQbjNuo3IGvl7ENg6wWEgZm",
+"series": ["16"],
+"models": ["dragonboard"],
+"name": "Default Test User",
+"username": "test",
+"email": "test@localhost",
+"password": "$6$BepBtwpXDqrC17Mi$V1TgHW7HWz4W4ykVYQ6GAkxz6QSwEV96SxDS/gihlDbCmBrUwRcYGdO1gaCVS8c4ssN1g0FXKVYOs6461Iheo.",
+"since": "2016-10-24T07:12:10+00:00",
+"until": "2018-10-24T07:12:10+00:00"
+}

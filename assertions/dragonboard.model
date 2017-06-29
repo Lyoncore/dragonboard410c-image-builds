@@ -1,0 +1,21 @@
+type: model
+authority-id: 4dOHyqyMqyQbjNuo3IGvl7ENg6wWEgZm
+series: 16
+brand-id: 4dOHyqyMqyQbjNuo3IGvl7ENg6wWEgZm
+model: dragonboard
+architecture: arm64
+gadget: dragonboard
+kernel: dragonboard-kernel
+timestamp: 2017-06-14T06:59:08+00:00
+sign-key-sha3-384: Vdb5ryjzl2QIXDvPnmMezBPHIW0lRYOxC_kBH2cGlqV8mY2xp_BJjWLkdrbpgVRB
+
+AcLBXAQAAQoABgUCWVSfnAAKCRAO3LzuepDiKZKrEACH9ox0Da/k54zX0M8mOiq3YmlWVrBIzAR4
+GVB6qRz+dPprVpI1bKe6fLhS+EwVVt/WbbRKJj0qjTVx7azdbQlrPYxVuHivm+Oi0Iln8R0ZzkFK
+VvFYG0WsfZCLTbhKCvT9YiMgEE5r3QmqeJebGWk7yykq705imPWV/2k+YTp5PWbEo7TB/MLSD0pB
+6e324h1BSAJVmaGPt2ejX9RhmgAIG3AksC7PQBYiRZwAVqNVYEtwhKU458wCXG+B9thl7yo9mSD3
+EKDeYBV1FfYJOnjOS+MFiDYnRLkQOwxhvFrw9P1bUoomaGcWwxnqEAUhgIUcOr2Uin81eFq6uNof
+wn3dls6+XmFS+F7krDTjGLX00NYHmR1Ia1JFBZzLGTbgFyrFnbLk6VuzyT8CM8vsTjuyPurIlbXD
+q/r7r0dX021yeAvAQcnhqvNoLWGNCqPLn8AMNkY8Tabr76do/6lGFp8FCRLFfQFo5ckqCR3aOAMQ
+DR2SARTB8ZAVDRTEm+8ndPr5AzExoCkNvmVo4NN2v02zb50Zjo9HU+IHlXjT9Pc1wJgSs6etEdYb
+4JJMNsx8EK/gLn4JBwzTL3fxZhHvT/bpyaAHIp0W1E6VcCQDg7dZno+Izmfumeo/lr/WXoyR5XfK
+RK1CRlbQTs1Ggym0ckQQAXOcW0tfyKJ5yylHPRG+jA==

@@ -1,0 +1,25 @@
+type: system-user
+authority-id: 4dOHyqyMqyQbjNuo3IGvl7ENg6wWEgZm
+brand-id: 4dOHyqyMqyQbjNuo3IGvl7ENg6wWEgZm
+email: test@localhost
+models:
+  - dragonboard
+name: Default Test User
+password: $6$BepBtwpXDqrC17Mi$V1TgHW7HWz4W4ykVYQ6GAkxz6QSwEV96SxDS/gihlDbCmBrUwRcYGdO1gaCVS8c4ssN1g0FXKVYOs6461Iheo.
+series:
+  - 16
+since: 2016-10-24T07:12:10+00:00
+until: 2018-10-24T07:12:10+00:00
+username: test
+sign-key-sha3-384: Vdb5ryjzl2QIXDvPnmMezBPHIW0lRYOxC_kBH2cGlqV8mY2xp_BJjWLkdrbpgVRB
+
+AcLBXAQAAQoABgUCWVSfkwAKCRAO3LzuepDiKTQKD/wLu/BXY5Epr62LVEmDNdzpe/0qafX/qXYc
+oi+K4s9AMVfytaUtmlD96lUkxX+dQ58kGiVzFHaKKjhaWSu7ms4eB0gaOnyh6lmIy+yUCluBSTlt
+/y4JK2R6uwaAotJBQZUvTpRZN8m620JA5g4ITXUTQ5qUSfpAyK2Wy6FLUkht+eNNR8kG58uk+P7W
+Vu5xHxgDqUW+s29IY+/COeLz5MX1y2mesbNSNXCefHB19HiSCJjA/mhKrcAcRAdTxEoyqJmA3gZ5
+cvnc1TWVMpvUV3kHwvTb0k1PMWrjLUXzbKHB1wzuzQ5UDc3utLFCdvxyqsv9TY6KhkKsShUyaA+z
+lZA6CvgEQG5p/wjjmm6kNFIjtvIlztjk67sUKAUp/sFYwlmuzrFVMLWptxTi00osOTnSlznIQimF
+Q6si67+Z7Mq83Ct93UNFTRKOsOie5EHMkAMz9AFUaV0ET3fjAwFkM4qtPchfjbL5/Ez/BuGp34+q
+K03TVfsj5YV7Jb68mxdugsCdfJKmzJTJS7x2HwG6pQx0rctsoSbH124o1b9gOjiWpCBdDshrqOB7
+Ikf+M8QZrzZ1On0xMJbfJyN+t4Hyor3nVBT+1G8Lg8Xkf1bEmOwUdKhj/aAfiCYAMlOwT004ECXd
+3BSp/v/CpHwRivr5YFRTpINiq0M1r7Kr0pN2GAArww==

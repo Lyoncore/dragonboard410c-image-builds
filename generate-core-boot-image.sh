@@ -38,9 +38,44 @@ create_image()
     local img=$3
     local add_cmdline=$4
 
-    local cmdline="snap_core=$core_snap_cmdline snap_kernel=$kernel_snap_cmdline debug=vc root=LABEL=writable init=/lib/systemd/systemd panic=-1 apparmor=0 security= rw rootwait console=tty0 console=ttyMSM0,115200n8 $add_cmdline"
+    local boot_cmdline="snap_core=$core_snap_cmdline snap_kernel=$kernel_snap_cmdline debug=vc root=LABEL=writable init=/lib/systemd/systemd panic=-1 apparmor=0 security= rw rootwait console=tty0 console=ttyMSM0,115200n8 $add_cmdline"
 
-    skales-mkbootimg --kernel="$workdir"/zImage --ramdisk="$workdir"/initrd.img --base='0x80000000' --output="$workdir/$img.img" --cmdline="$cmdline" --ramdisk_base='0x84000000' "$workdir"/dt.img
+    skales-mkbootimg --kernel="$workdir"/zImage --ramdisk="$workdir"/initrd.img --base=0x80000000 --output="$workdir/$img.img" --cmdline="$boot_cmdline" --ramdisk_base='0x84000000' --dt="$workdir"/dt.img
+
+    cp "$workdir/$img.img" "$output/dragonboard-$img-$(date --utc +%Y%m%d%H%M).img"
+}
+
+# $1 -> core snap name
+# $2 -> kernel snap name
+# $3 -> image name
+create_systemboot_image()
+{
+    local core_snap_cmdline=$1
+    local kernel_snap_cmdline=$2
+    local img=$3
+    local img_size=64M
+
+    truncate -s $img_size "$workdir/$img.img"
+    mkfs.fat "$workdir/$img.img"
+    mkdir -p "$workdir/system-boot"
+    mount "$workdir/$img.img" "$workdir/system-boot"
+
+    # copy kernel snap
+    mkdir -p "$workdir/system-boot/$kernel_snap_cmdline"
+    cp "$workdir"/initrd.img "$workdir/system-boot/$kernel_snap_cmdline"
+    cp "$workdir"/snap/kernel.img "$workdir/system-boot/$kernel_snap_cmdline"
+    cp -R "$workdir"/snap/dtbs "$workdir/system-boot/$kernel_snap_cmdline"
+
+    # generate uboot env
+    sed -i "s/snap_core=[[:alnum:]_.-]*/snap_core=$core_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    sed -i "s/snap_orig_core=[[:alnum:]_.-]*/snap_orig_core=$core_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    sed -i "s/snap_kernel=[[:alnum:]_.-]*/snap_kernel=$kernel_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    sed -i "s/snap_orig_kernel=[[:alnum:]_.-]*/snap_orig_kernel=$kernel_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    mkenvimage -r -s 131072  -o "$workdir/system-boot/uboot.env" "$datadir"/gadget/uboot.env.in
+
+    umount "$workdir/system-boot"
+
+    fatlabel "$workdir/$img.img" "system-boot"
 
     cp "$workdir/$img.img" "$output/dragonboard-$img-$(date --utc +%Y%m%d%H%M).img"
 }
@@ -77,15 +112,13 @@ cp "$datadir"/etc/fw_env.config "$workdir"/initrd/etc/
      | gzip -9 > "$workdir"/initrd.img)
 
 # Create device tree image by skales tool
-skales-dtbtool -o "$workdir"/dt.img "$workdir"/snap/dtbs
+skales-dtbtool -v -o "$workdir"/dt.img "$workdir"/snap/dtbs
 
 # Create recovery image, which boots to Ubuntu Core (no extra kernel cmdline in this case)
 create_image "$core_snap" "$kernel_snap" recovery ""
 
-# Create boot image, which runs the bootloader script
-create_image "$core_snap" "$kernel_snap" boot "boot=bootloader-script"
-
-# Create system-boot image
+# Create system-boot image (use for upgrade/revert recovery partition)
+create_systemboot_image "$core_snap" "$kernel_snap" systemboot
 
 umount "$workdir"/snap
 rm -rf "$workdir"

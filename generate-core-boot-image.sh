@@ -67,10 +67,10 @@ create_systemboot_image()
     cp -R "$workdir"/snap/dtbs "$workdir/system-boot/$kernel_snap_cmdline"
 
     # generate uboot env
-    sed -i "s/snap_core=[[:alnum:]_.-]*/snap_core=$core_snap_cmdline/" "$datadir"/gadget/uboot.env.in
-    sed -i "s/snap_orig_core=[[:alnum:]_.-]*/snap_orig_core=$core_snap_cmdline/" "$datadir"/gadget/uboot.env.in
-    sed -i "s/snap_kernel=[[:alnum:]_.-]*/snap_kernel=$kernel_snap_cmdline/" "$datadir"/gadget/uboot.env.in
-    sed -i "s/snap_orig_kernel=[[:alnum:]_.-]*/snap_orig_kernel=$kernel_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    sed -i "s/snap_core=[[:alnum:]_.-]*[^\$]/snap_core=$core_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    sed -i "s/snap_orig_core=[[:alnum:]_.-]*[^\$]/snap_orig_core=$core_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    sed -i "s/snap_kernel=[[:alnum:]_.-]*[^\$]/snap_kernel=$kernel_snap_cmdline/" "$datadir"/gadget/uboot.env.in
+    sed -i "s/snap_orig_kernel=[[:alnum:]_.-]*[^\$]/snap_orig_kernel=$kernel_snap_cmdline/" "$datadir"/gadget/uboot.env.in
     mkenvimage -r -s 131072  -o "$workdir/system-boot/uboot.env" "$datadir"/gadget/uboot.env.in
 
     umount "$workdir/system-boot"

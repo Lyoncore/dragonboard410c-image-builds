@@ -29,6 +29,15 @@ apt-get install skales
 
 u-boot image is pre-built from [here](https://github.com/JulianLiu/u-boot-dragonboard410c) which were forked from [hallor](https://github.com/hallor/u-boot) and appied with patch by [kubiko](https://github.com/kubiko/dragonboard-gadget/tree/emmc-boot). FAT_ENV_DEVICE_AND_PART is re-defined at 0:16 (mmc device 0 part #22).
 
+how to build u-boot
+
+```shell
+make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- dragonboard410c_defconfig
+make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j4
+
+skales-mkbootimg --kernel=u-boot.bin --output=u-boot.img --dt=fake_dt --pagesize 2048 --base 0x80000000 --ramdisk=fake_ramdisk --cmdline=""ll
+```
+
 ## Build images
 
 ```shell

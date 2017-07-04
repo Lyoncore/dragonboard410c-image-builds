@@ -261,6 +261,12 @@ generate_core_image()
                          -name $target\*-kernel_\*.snap -printf "%f\n")"
     fi
 
+    if [ -z "$kernel" ]; then
+        echo "Copy kernel snap to pwd"
+        $(find "$workdir"/rootfs/image/var/lib/snapd/seed/snaps/ \
+                         -name $target\*-kernel_\*.snap -exec cp '{}' $(pwd) \;)
+    fi
+
     sudo rm -rf "$workdir"
 }
 

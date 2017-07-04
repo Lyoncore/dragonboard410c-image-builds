@@ -59,6 +59,117 @@ EOF
     snap sign < "$workdir"/test-user-assertion.json > "$user_assertion"
 }
 
+# This function seeds some initial data, disables console-conf, and then adds a
+# systemd unit that does the following on first boot:
+# 1. Adds "test" as system user
+# 2. Sets-up netplan configuration
+seed_initial_config()
+{
+    system_data=$1
+
+    # Migrate all systemd units from core snap into the writable area. This
+    # would be normally done on firstboot by the initramfs but we can't rely
+    # on that because we  are adding another file in there and that will
+    # prevent the initramfs from transitioning any files.
+    core_snap=$(find "$system_data"/var/lib/snapd/snaps -name "core_*.snap")
+    tmp_core=$(mktemp -d)
+    sudo mount "$core_snap" "$tmp_core"
+    mkdir -p "$system_data"/etc/systemd
+    cp -rav "$tmp_core"/etc/systemd/* \
+       "$system_data"/etc/systemd/
+    sudo umount "$tmp_core"
+    rm -rf "$tmp_core"
+
+    # system-user assertion which gives us our test:test user we use to
+    # log into the system
+    mkdir -p "$system_data"/var/lib/snapd/seed/assertions
+    cp "$user_assertion" "$system_data"/var/lib/snapd/seed/assertions
+
+    # Create systemd service which is running on firstboot and sets up
+    # various things for us.
+    mkdir -p "$system_data"/etc/systemd/system || true
+    cat << 'EOF' > "$system_data"/etc/systemd/system/devmode-firstboot.service
+[Unit]
+Description=Run devmode firstboot setup
+After=snapd.service snapd.socket
+
+[Service]
+Type=oneshot
+ExecStart=/writable/system-data/var/lib/devmode-firstboot/run.sh
+RemainAfterExit=yes
+TimeoutSec=10min
+EOF
+
+    mkdir -p "$system_data"/etc/systemd/system/multi-user.target.wants || true
+    ln -sf /etc/systemd/system/devmode-firstboot.service \
+       "$system_data"/etc/systemd/system/multi-user.target.wants/devmode-firstboot.service
+
+    mkdir "$system_data"/var/lib/devmode-firstboot || true
+    cat << 'EOF' > "$system_data"/var/lib/devmode-firstboot/00-snapd-config.yaml
+network:
+  version: 2
+  wifis:
+    wlan0:
+      access-points:
+        YOU_SSID_HERE: {password: YOU_PASSWORD_HERE}
+      addresses: []
+      dhcp4: true
+EOF
+
+    cat << 'EOF' > "$system_data"/var/lib/devmode-firstboot/run.sh
+#!/bin/sh
+
+set -ex
+
+# Don't start again if we're already done
+if [ -e /writable/system-data/var/lib/devmode-firstboot/complete ] ; then
+	exit 0
+fi
+
+echo "$(date -Iseconds --utc) Start devmode-firstboot"	| tee /dev/kmsg /dev/console
+
+if [ "$(snap managed)" = "true" ]; then
+	echo "System already managed, exiting"
+	exit 0
+fi
+
+# no changes at all
+until snap changes ; do
+	echo "No changes yet, waiting"
+	sleep 1
+done
+
+while snap changes | grep -qE '(Do|Doing) .*Initialize system state' ;	do
+	echo "Initialize system state is in progress, waiting"
+	sleep 1
+done
+
+# If we have the assertion, create the user
+if [ -n "$(snap known system-user)" ]; then
+	echo "Trying to create known user"
+	snap create-user --known --sudoer
+fi
+
+echo "$(date -Iseconds --utc) devmode-firstboot: system user created" \
+	| tee /dev/kmsg /dev/console
+
+cp /writable/system-data/var/lib/devmode-firstboot/00-snapd-config.yaml \
+	/writable/system-data/etc/netplan
+
+# Apply network configuration
+netplan generate
+systemctl restart systemd-networkd.service
+
+echo "$(date -Iseconds --utc) devmode-firstboot: network configuration applied" \
+	| tee /dev/kmsg /dev/console
+
+# Mark us done
+touch /writable/system-data/var/lib/devmode-firstboot/complete
+EOF
+
+    chmod +x "$system_data"/var/lib/devmode-firstboot/run.sh
+}
+
 # Generate ready-to-flash image for userdata partition
 # $1 OPTIONAL, kernel snap
 # $2 OPTIONAL, gadget snap
@@ -119,6 +230,8 @@ generate_core_image()
     prepare_img_args+=("$model_assertion"
                        "$workdir"/rootfs)
     snap prepare-image "${prepare_img_args[@]}"
+
+    seed_initial_config "$workdir"/rootfs/image
 
     sudo chown -R root:root "$workdir"/rootfs
 

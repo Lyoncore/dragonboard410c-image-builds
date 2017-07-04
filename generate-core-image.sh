@@ -85,6 +85,12 @@ seed_initial_config()
     mkdir -p "$system_data"/var/lib/snapd/seed/assertions
     cp "$user_assertion" "$system_data"/var/lib/snapd/seed/assertions
 
+    # Disable console-conf for the first boot
+    if [ "$DISABLE_CONSOLE_CONF" = "true" ]; then
+        mkdir -p "$system_data"/var/lib/console-conf/
+        touch "$system_data"/var/lib/console-conf/complete
+    fi
+
     # Create systemd service which is running on firstboot and sets up
     # various things for us.
     mkdir -p "$system_data"/etc/systemd/system || true
@@ -97,7 +103,7 @@ After=snapd.service snapd.socket
 Type=oneshot
 ExecStart=/writable/system-data/var/lib/devmode-firstboot/run.sh
 RemainAfterExit=yes
-TimeoutSec=10min
+TimeoutSec=30min
 EOF
 
     mkdir -p "$system_data"/etc/systemd/system/multi-user.target.wants || true
@@ -111,7 +117,7 @@ network:
   wifis:
     wlan0:
       access-points:
-        YOU_SSID_HERE: {password: YOU_PASSWORD_HERE}
+        YOUR_SSID_HERE: {password: YOUR_PASSWORD_HERE}
       addresses: []
       dhcp4: true
 EOF

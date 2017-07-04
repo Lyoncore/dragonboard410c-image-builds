@@ -53,7 +53,7 @@ create_systemboot_image()
     local core_snap_cmdline=$1
     local kernel_snap_cmdline=$2
     local img=$3
-    local img_size=64M
+    local img_size=256M
 
     truncate -s $img_size "$workdir/$img.img"
     mkfs.fat "$workdir/$img.img"

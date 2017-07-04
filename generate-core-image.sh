@@ -28,7 +28,7 @@ generate_assertions()
 "brand-id": "$user_account_id",
 "series": "16",
 "model": "$target",
-"architecture": "armhf",
+"architecture": "arm64",
 "gadget": "$target",
 "kernel": "$target-kernel",
 "timestamp": "$(date -Iseconds --utc)"

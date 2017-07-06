@@ -91,3 +91,7 @@ fastboot flash system ./dragonboard-systemboot-YYYYmmddHHMM.img
 fastboot flash userdata ./dragonboard-userdata-YYYYmmddHHMM.img
 fastboot flash boot gadget/u-boot.img
 ```
+
+## Little kernel reboot modes
+
+There are two ways to specify reboot modes in dragonbord's little kernel(decided at compile time by USE_PON_REBOOT_REG). One is internal MSM_SHARED_IMEM and the other is using reserved PON register bits in PMIC. This project assume lk is using IMEM and u-boots will modify the value in memory address at 0x0860065c to specify the reboot mode. u-boots needs to turn dcache off before modifying IMEM.
